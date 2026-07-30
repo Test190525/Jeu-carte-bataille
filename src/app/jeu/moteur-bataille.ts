@@ -31,14 +31,10 @@ export interface EtatJeu {
   phase: Phase;
   /** Qui a distribué (celui qui a tiré la carte la plus forte). */
   donneur: Joueur | null;
-  /** Les cartes tirées pour désigner le donneur, gardées pour l'affichage. */
-  tirageDonneur: Record<Joueur, Carte> | null;
   /** Les paquets face cachée de chaque joueur. */
   paquets: Record<Joueur, Carte[]>;
   /** Les cartes posées sur la table pour le tour en cours. */
   tapis: Record<Joueur, CartePosee[]>;
-  /** Nombre de batailles enchaînées dans le tour courant (0 = tour normal). */
-  niveauBataille: number;
   tour: number;
   vainqueur: Resultat | null;
 }
@@ -53,10 +49,8 @@ export class MoteurBataille {
     return {
       phase: 'accueil',
       donneur: null,
-      tirageDonneur: null,
       paquets: { joueur: [], ordinateur: [] },
       tapis: { joueur: [], ordinateur: [] },
-      niveauBataille: 0,
       tour: 0,
       vainqueur: null,
     };
@@ -101,7 +95,6 @@ export class MoteurBataille {
     });
 
     this.etat.donneur = donneur;
-    this.etat.tirageDonneur = { joueur: carteJoueur, ordinateur: carteOrdi };
     this.etat.paquets = paquets;
     this.etat.phase = 'pret';
   }
@@ -136,7 +129,6 @@ export class MoteurBataille {
       return;
     }
     this.etat.tour++;
-    this.etat.niveauBataille = 0;
     this.etat.tapis = { joueur: [], ordinateur: [] };
 
     // La règle veut que l'adversaire du donneur retourne en premier ;
@@ -181,7 +173,6 @@ export class MoteurBataille {
    * la carte décisive, qui est celle qui compte.
    */
   private poserCartesCachees(): void {
-    this.etat.niveauBataille++;
     for (const j of this.ordreDePose()) {
       if (this.etat.paquets[j].length >= 2) {
         this.poser(j, true);
@@ -243,7 +234,6 @@ export class MoteurBataille {
 
     if (!this.verifierFinDePartie()) {
       this.etat.phase = 'pret';
-      this.etat.niveauBataille = 0;
     }
   }
 
@@ -279,29 +269,5 @@ export class MoteurBataille {
 
   private static autre(j: Joueur): Joueur {
     return j === 'joueur' ? 'ordinateur' : 'joueur';
-  }
-
-  // ------------------------------------------------------------------
-  // Contrôle : doit TOUJOURS valoir 52
-  // ------------------------------------------------------------------
-
-  /** Nombre total de cartes en jeu (paquets + tapis). Sert de garde-fou. */
-  totalCartes(): number {
-    return (
-      this.etat.paquets.joueur.length +
-      this.etat.paquets.ordinateur.length +
-      this.etat.tapis.joueur.length +
-      this.etat.tapis.ordinateur.length
-    );
-  }
-
-  /** Liste de tous les identifiants en jeu : sert à détecter doublons/pertes. */
-  tousLesIds(): string[] {
-    return [
-      ...this.etat.paquets.joueur,
-      ...this.etat.paquets.ordinateur,
-      ...this.etat.tapis.joueur.map((p) => p.carte),
-      ...this.etat.tapis.ordinateur.map((p) => p.carte),
-    ].map((c) => c.id);
   }
 }
