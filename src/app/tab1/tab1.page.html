@@ -1,72 +1,99 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>Bataille</ion-title>
-  </ion-toolbar>
-</ion-header>
-
-<ion-content [fullscreen]="true" class="ion-padding">
-
-  <!-- Adversaire -->
-  <div class="cote">
-    <ion-badge color="medium">Ordinateur : {{ jeu.nbCartes('ordinateur') }} cartes</ion-badge>
-    @if (jeu.etat.donneur === 'ordinateur') {
-      <ion-badge color="warning">donneur</ion-badge>
-    }
-  </div>
-
-  <!-- Le tapis -->
-  <ion-card>
-    <ion-card-content>
-      <div class="tapis">
-        <div class="pile">
-          @for (n of repeter(jeu.nbCachees('ordinateur')); track $index) {
-            <span class="carte dos">?</span>
-          }
-          @for (c of jeu.cartesVisibles('ordinateur'); track c.id) {
-            <span [class]="classeCarte(c)">{{ texte(c) }}</span>
-          }
-        </div>
-
-        <div class="separateur">vs</div>
-
-        <div class="pile">
-          @for (n of repeter(jeu.nbCachees('joueur')); track $index) {
-            <span class="carte dos">?</span>
-          }
-          @for (c of jeu.cartesVisibles('joueur'); track c.id) {
-            <span [class]="classeCarte(c)">{{ texte(c) }}</span>
-          }
-        </div>
-      </div>
-
-      <p class="message">{{ jeu.etat.message }}</p>
-    </ion-card-content>
-  </ion-card>
-
-  <!-- Toi -->
-  <div class="cote">
-    <ion-badge color="primary">Toi : {{ jeu.nbCartes('joueur') }} cartes</ion-badge>
-    @if (jeu.etat.donneur === 'joueur') {
-      <ion-badge color="warning">donneur</ion-badge>
-    }
-  </div>
-
-  <!-- Commandes -->
-  <ion-button expand="block" (click)="action()">{{ jeu.libelleAction }}</ion-button>
+<ion-content [fullscreen]="true" class="table">
   @if (jeu.partieEnCours) {
-    <ion-button expand="block" fill="outline" color="medium" (click)="jeu.nouvellePartie()">
-      Recommencer
+    <ion-button class="menu-pause" fill="clear" (click)="mettreEnPause()" aria-label="Menu">
+      <ion-icon slot="icon-only" name="pause"></ion-icon>
     </ion-button>
   }
 
-  <!-- Journal : indispensable pour vérifier que les règles sont respectées -->
-  @if (jeu.etat.journal.length) {
-    <ion-list>
-      @for (ligne of jeu.etat.journal; track $index) {
-        <ion-item>
-          <ion-label class="ion-text-wrap">{{ ligne }}</ion-label>
-        </ion-item>
-      }
-    </ion-list>
+  <div class="tapis">
+    <!-- Décor du feutre : arcs et emblème gravés, purement visuel -->
+    <div class="arcs" aria-hidden="true"></div>
+    <div class="embleme" aria-hidden="true">
+      <span class="la">La</span>
+      <span class="titre">BATAILLE</span>
+      <span class="enseignes">♠ ♥ ♦ ♣</span>
+    </div>
+
+    <!-- Paquet de l'adversaire -->
+    <div class="camp haut">
+      <div class="paquet">
+        @if (jeu.nbCartes('ordinateur')) {
+          <app-carte />
+        }
+        <span class="compteur">{{ jeu.nbCartes('ordinateur') }}</span>
+      </div>
+    </div>
+
+    <!-- Cartes posées : les deux éventails se font face -->
+    <div class="zone-de-jeu">
+      <div class="eventail adversaire">
+        @for (p of jeu.posees('ordinateur'); track p.carte.id) {
+          <app-carte
+            class="depuis-haut"
+            [class.entrante]="estEntrante(p)"
+            [style.animation-delay.ms]="decalage(p)"
+            [carte]="p.carte"
+            [retournee]="estRetournee(p)" />
+        }
+      </div>
+
+      <div class="eventail joueur">
+        @for (p of jeu.posees('joueur'); track p.carte.id) {
+          <app-carte
+            class="depuis-bas"
+            [class.entrante]="estEntrante(p)"
+            [style.animation-delay.ms]="decalage(p)"
+            [carte]="p.carte"
+            [retournee]="estRetournee(p)" />
+        }
+      </div>
+    </div>
+
+    <!-- Paquet du joueur : c'est lui qu'on clique pour poser une carte -->
+    <div class="camp bas">
+      <button
+        type="button"
+        class="paquet"
+        [class.jouable]="jeu.peutPoser"
+        [disabled]="!jeu.peutPoser"
+        [attr.aria-label]="jeu.enBataille ? 'Poser les cartes de la bataille' : 'Retourner une carte'"
+        (click)="poser()">
+        @if (jeu.nbCartes('joueur')) {
+          <app-carte />
+        }
+        <span class="compteur">{{ jeu.nbCartes('joueur') }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Départ de la partie -->
+  @if (jeu.etat.phase === 'accueil') {
+    <div class="voile">
+      <ion-button class="action" size="large" color="warning" (click)="nouvellePartie()">
+        Prêt à jouer ?
+      </ion-button>
+    </div>
+  }
+
+  <!-- Fin de partie -->
+  @if (jeu.etat.phase === 'fin') {
+    <div class="voile">
+      <p class="resultat">{{ jeu.resultat }}</p>
+      <ion-button class="action" size="large" color="warning" (click)="nouvellePartie()">
+        Nouvelle partie
+      </ion-button>
+    </div>
+  }
+
+  <!-- Menu pause -->
+  @if (enPause) {
+    <div class="voile">
+      <ion-button class="action" size="large" color="success" (click)="reprendre()">
+        Reprendre
+      </ion-button>
+      <ion-button class="action" size="large" color="warning" (click)="nouvellePartie()">
+        Nouvelle partie
+      </ion-button>
+    </div>
   }
 </ion-content>

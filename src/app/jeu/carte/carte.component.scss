@@ -1,0 +1,110 @@
+:host {
+  display: block;
+  position: relative;
+  width: 84px;
+  height: 120px;
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+}
+
+// --- Dos de carte ---------------------------------------------------------
+
+.face.dos {
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border: 2px solid #fff;
+}
+
+// Le motif du dos : un treillis en losanges, un liseré clair et un cadre blanc.
+.dos .motif {
+  position: absolute;
+  inset: 3px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.22) 0 2px, transparent 2px 7px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.22) 0 2px, transparent 2px 7px),
+    radial-gradient(circle at 50% 45%, #ec5b52 0 45%, #c62828 100%);
+}
+
+// Les quatre enseignes aux angles, comme sur un dos de jeu classique.
+.dos .enseigne {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.dos .enseigne.hg {
+  top: 8px;
+  left: 8px;
+}
+
+.dos .enseigne.hd {
+  top: 8px;
+  right: 8px;
+}
+
+.dos .enseigne.bg {
+  bottom: 8px;
+  left: 8px;
+}
+
+.dos .enseigne.bd {
+  bottom: 8px;
+  right: 8px;
+}
+
+// --- Face de carte --------------------------------------------------------
+
+.face.avant {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  color: #1b1b1b;
+}
+
+.face.avant.rouge {
+  color: #d32f2f;
+}
+
+.coin {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.coin em {
+  font-style: normal;
+  font-size: 14px;
+}
+
+.coin.haut {
+  top: 5px;
+  left: 6px;
+}
+
+// Comme sur une vraie carte : l'index est répété tête-bêche en bas à droite.
+.coin.bas {
+  right: 6px;
+  bottom: 5px;
+  transform: rotate(180deg);
+}
+
+.centre {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 42px;
+}

@@ -36,22 +36,14 @@ export interface EtatJeu {
   paquets: Record<Joueur, Carte[]>;
   /** Les cartes posées sur la table pour le tour en cours. */
   tapis: Record<Joueur, CartePosee[]>;
-  /** Message à afficher à l'écran. */
-  message: string;
   /** Nombre de batailles enchaînées dans le tour courant (0 = tour normal). */
   niveauBataille: number;
   tour: number;
   vainqueur: Resultat | null;
-  journal: string[];
 }
 
 /** Au-delà, on considère la partie interminable et on départage aux cartes. */
 const LIMITE_TOURS = 500;
-
-const NOMS: Record<Joueur, string> = {
-  joueur: 'Toi',
-  ordinateur: "L'ordinateur",
-};
 
 export class MoteurBataille {
   etat: EtatJeu = MoteurBataille.etatInitial();
@@ -63,11 +55,9 @@ export class MoteurBataille {
       tirageDonneur: null,
       paquets: { joueur: [], ordinateur: [] },
       tapis: { joueur: [], ordinateur: [] },
-      message: 'Prêt à jouer ?',
       niveauBataille: 0,
       tour: 0,
       vainqueur: null,
-      journal: [],
     };
   }
 
@@ -113,10 +103,6 @@ export class MoteurBataille {
     this.etat.tirageDonneur = { joueur: carteJoueur, ordinateur: carteOrdi };
     this.etat.paquets = paquets;
     this.etat.phase = 'pret';
-    this.etat.message = `${NOMS[donneur]} distribue (carte la plus forte au tirage).`;
-    this.noter(
-      `Tirage : ${carteJoueur.libelle} contre ${carteOrdi.libelle} → ${NOMS[donneur]} distribue.`,
-    );
   }
 
   // ------------------------------------------------------------------
@@ -156,7 +142,6 @@ export class MoteurBataille {
       this.poser(j, false);
     }
     this.etat.phase = 'comparaison';
-    this.etat.message = 'Qui a la carte la plus forte ?';
   }
 
   /** Étape 2 : on compare les cartes visibles du dessus du tapis. */
@@ -166,29 +151,24 @@ export class MoteurBataille {
 
     // Cas limite : un joueur n'a pas pu poser (plus de cartes) pendant une bataille.
     if (!visibleJoueur && !visibleOrdi) {
-      this.terminer('egalite', 'Plus personne ne peut poser de carte : égalité.');
+      this.terminer('egalite');
       return;
     }
     if (!visibleJoueur) {
-      this.ramasser('ordinateur', "Tu ne peux plus poser de carte pour la bataille.");
+      this.ramasser('ordinateur');
       return;
     }
     if (!visibleOrdi) {
-      this.ramasser('joueur', "L'ordinateur ne peut plus poser de carte pour la bataille.");
+      this.ramasser('joueur');
       return;
     }
 
     if (visibleJoueur.valeur === visibleOrdi.valeur) {
       this.etat.phase = 'bataille';
-      this.etat.message = `BATAILLE ! Deux ${visibleJoueur.libelle} : une carte cachée, puis une visible.`;
-      this.noter(`Bataille sur ${visibleJoueur.libelle}.`);
       return;
     }
 
-    const gagnant: Joueur = visibleJoueur.valeur > visibleOrdi.valeur ? 'joueur' : 'ordinateur';
-    const forte = gagnant === 'joueur' ? visibleJoueur : visibleOrdi;
-    const faible = gagnant === 'joueur' ? visibleOrdi : visibleJoueur;
-    this.ramasser(gagnant, `${forte.libelle} bat ${faible.libelle}.`);
+    this.ramasser(visibleJoueur.valeur > visibleOrdi.valeur ? 'joueur' : 'ordinateur');
   }
 
   /** Étape 3 (si bataille) : chacun pose une carte cachée puis une visible. */
@@ -206,7 +186,6 @@ export class MoteurBataille {
       // 0 carte : ce joueur ne peut plus se défendre, comparer() tranchera.
     }
     this.etat.phase = 'comparaison';
-    this.etat.message = 'On compare les nouvelles cartes visibles.';
   }
 
   // ------------------------------------------------------------------
@@ -241,15 +220,13 @@ export class MoteurBataille {
    * sous son paquet. On mélange le butin : sans cela, deux paquets peuvent
    * se réalimenter dans le même ordre et la partie ne finit jamais.
    */
-  private ramasser(gagnant: Joueur, raison: string): void {
+  private ramasser(gagnant: Joueur): void {
     const butin = melanger([
       ...this.etat.tapis.joueur.map((p) => p.carte),
       ...this.etat.tapis.ordinateur.map((p) => p.carte),
     ]);
     this.etat.paquets[gagnant].push(...butin);
     this.etat.tapis = { joueur: [], ordinateur: [] };
-    this.etat.message = `${raison} ${NOMS[gagnant]} ramasse ${butin.length} cartes.`;
-    this.noter(this.etat.message);
 
     if (!this.verifierFinDePartie()) {
       this.etat.phase = 'pret';
@@ -263,37 +240,28 @@ export class MoteurBataille {
     const nbOrdi = this.etat.paquets.ordinateur.length;
 
     if (nbJoueur === 0 && nbOrdi === 0) {
-      this.terminer('egalite', 'Les deux paquets sont vides : égalité.');
+      this.terminer('egalite');
       return true;
     }
     if (nbJoueur === 0) {
-      this.terminer('ordinateur', "Tu n'as plus aucune carte.");
+      this.terminer('ordinateur');
       return true;
     }
     if (nbOrdi === 0) {
-      this.terminer('joueur', "L'ordinateur n'a plus aucune carte.");
+      this.terminer('joueur');
       return true;
     }
     if (this.etat.tour >= LIMITE_TOURS) {
-      const vainqueur: Resultat =
-        nbJoueur === nbOrdi ? 'egalite' : nbJoueur > nbOrdi ? 'joueur' : 'ordinateur';
-      this.terminer(vainqueur, `Partie très longue (${LIMITE_TOURS} tours) : on départage aux cartes.`);
+      // Partie interminable : on départage sur le nombre de cartes détenues.
+      this.terminer(nbJoueur === nbOrdi ? 'egalite' : nbJoueur > nbOrdi ? 'joueur' : 'ordinateur');
       return true;
     }
     return false;
   }
 
-  private terminer(vainqueur: Resultat, raison: string): void {
+  private terminer(vainqueur: Resultat): void {
     this.etat.phase = 'fin';
     this.etat.vainqueur = vainqueur;
-    this.etat.message =
-      vainqueur === 'egalite' ? `${raison} Match nul.` : `${raison} ${NOMS[vainqueur]} gagne !`;
-    this.noter(this.etat.message);
-  }
-
-  private noter(ligne: string): void {
-    this.etat.journal.unshift(`${this.etat.tour}. ${ligne}`);
-    this.etat.journal = this.etat.journal.slice(0, 50);
   }
 
   private static autre(j: Joueur): Joueur {

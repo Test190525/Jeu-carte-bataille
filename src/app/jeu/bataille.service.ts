@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 
-import { Carte } from './carte.model';
-import { EtatJeu, Joueur, MoteurBataille } from './moteur-bataille';
+import { CartePosee, EtatJeu, Joueur, MoteurBataille } from './moteur-bataille';
 
 /**
  * Service Angular : il ne contient AUCUNE règle du jeu.
@@ -28,31 +27,34 @@ export class BatailleService {
     return this.etat.paquets[j].length;
   }
 
-  /** Cartes visibles posées par un joueur, dans l'ordre de pose. */
-  cartesVisibles(j: Joueur): Carte[] {
-    return this.etat.tapis[j].filter((p) => !p.cachee).map((p) => p.carte);
-  }
-
-  /** Nombre de cartes face cachée posées par un joueur pendant les batailles. */
-  nbCachees(j: Joueur): number {
-    return this.etat.tapis[j].filter((p) => p.cachee).length;
-  }
-
-  /** Libellé du bouton d'action principal, selon la phase. */
-  get libelleAction(): string {
-    switch (this.etat.phase) {
-      case 'pret':
-        return 'Retourner les cartes';
-      case 'comparaison':
-        return 'Comparer';
-      case 'bataille':
-        return 'BATAILLE !';
-      default:
-        return 'Nouvelle partie';
-    }
+  /** Cartes posées sur le tapis par un joueur, dans l'ordre de pose. */
+  posees(j: Joueur): CartePosee[] {
+    return this.etat.tapis[j];
   }
 
   get partieEnCours(): boolean {
     return this.etat.phase !== 'accueil' && this.etat.phase !== 'fin';
+  }
+
+  /** Le joueur doit-il poser ? C'est le seul moment où son paquet est cliquable. */
+  get peutPoser(): boolean {
+    return this.etat.phase === 'pret' || this.etat.phase === 'bataille';
+  }
+
+  /** Une bataille est en cours : le tapis attend deux cartes de plus. */
+  get enBataille(): boolean {
+    return this.etat.phase === 'bataille';
+  }
+
+  /** Résultat affiché une fois la partie terminée. */
+  get resultat(): string {
+    switch (this.etat.vainqueur) {
+      case 'joueur':
+        return 'Tu gagnes !';
+      case 'ordinateur':
+        return "L'ordinateur gagne !";
+      default:
+        return 'Match nul.';
+    }
   }
 }

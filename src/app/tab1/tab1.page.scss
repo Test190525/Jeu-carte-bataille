@@ -1,65 +1,250 @@
-// Habillage volontairement minimal : l'étape 3 remplacera ces "cartes texte"
-// par de vraies cartes dessinées et animées.
-
-.cote {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin: 8px 0;
+// Le feutre : un vert plus clair au centre, assombri sur les bords (vignettage).
+.table {
+  --background:
+    radial-gradient(ellipse 70% 55% at 50% 45%, #2aa14a 0%, #1c8a3c 45%, #0e5c25 100%);
 }
 
 .tapis {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  position: relative;
+  min-height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(230px, 1fr) auto;
+  justify-items: center;
   gap: 8px;
-  min-height: 140px;
+  padding: 12px 12px calc(12px + var(--ion-safe-area-bottom, 0px));
 }
 
-.pile {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: center;
-  min-height: 56px;
+// --- Décor ----------------------------------------------------------------
+
+// Deux arcs rouges concentriques, comme tracés sur le tapis.
+.arcs {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300px;
+  height: 300px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid rgba(150, 20, 20, 0.45);
+  pointer-events: none;
 }
 
-.carte {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  height: 56px;
-  padding: 0 6px;
-  border-radius: 6px;
-  border: 1px solid var(--ion-color-step-300, #ccc);
-  background: #fff;
-  font-weight: 700;
-  font-size: 1.1rem;
+.arcs::before {
+  content: '';
+  position: absolute;
+  inset: 26px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
 }
 
-.carte.rouge {
-  color: #d32f2f;
+// Emblème gravé : deux ombres opposées suffisent à creuser le feutre.
+.embleme {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  transform: translate(-50%, -50%);
+  color: rgba(0, 0, 0, 0.16);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+  user-select: none;
 }
 
-.carte.noire {
-  color: #222;
+.embleme .la {
+  font: italic 700 18px/1 Georgia, serif;
+  margin-bottom: -4px;
 }
 
-.carte.dos {
-  background: repeating-linear-gradient(45deg, #3880ff, #3880ff 6px, #2a63cc 6px, #2a63cc 12px);
-  color: #fff;
-  border-color: #2a63cc;
-}
-
-.separateur {
-  color: var(--ion-color-medium);
-  font-size: 0.8rem;
+.embleme .titre {
+  font: 700 34px/1 Georgia, serif;
   letter-spacing: 2px;
 }
 
-.message {
-  text-align: center;
-  margin: 12px 0 0;
-  font-weight: 600;
+.embleme .enseignes {
+  font-size: 12px;
+  letter-spacing: 4px;
+}
+
+// --- Paquets --------------------------------------------------------------
+
+.camp {
+  position: relative;
+  z-index: 1;
+}
+
+.camp.haut {
+  align-self: start;
+}
+
+.camp.bas {
+  align-self: end;
+}
+
+.paquet {
+  position: relative;
+  width: 84px;
+  height: 120px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+// Le paquet du joueur remplace le bouton « retourner les cartes ».
+.paquet.jouable {
+  cursor: pointer;
+  animation: appel 1.6s ease-in-out infinite;
+}
+
+.paquet.jouable:active {
+  transform: scale(0.96);
+}
+
+// Une respiration discrète pour signaler que c'est au joueur de cliquer.
+@keyframes appel {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 rgba(255, 235, 160, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgba(255, 235, 160, 0.75));
+  }
+}
+
+.paquet app-carte {
+  position: absolute;
+  inset: 0;
+}
+
+// La pastille du nombre de cartes restantes, à cheval sur le paquet.
+.compteur {
+  position: absolute;
+  top: -12px;
+  right: -18px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid #d9b45a;
+  background: linear-gradient(#fdfdfd, #d8d8d8);
+  color: #222;
+  font-weight: 700;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+// --- Cartes posées --------------------------------------------------------
+
+.zone-de-jeu {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+// Les cartes se chevauchent : seul l'index de gauche reste visible,
+// la dernière posée passe naturellement au-dessus (ordre du DOM).
+.eventail {
+  display: flex;
+  min-height: 120px;
+}
+
+.eventail app-carte + app-carte {
+  margin-left: -58px;
+}
+
+// --- Animation de pose ----------------------------------------------------
+// La carte part de son paquet (haut ou bas de l'écran) et vient se ranger.
+
+@keyframes pose-depuis-haut {
+  from {
+    transform: translateY(-150px) rotate(-7deg) scale(0.88);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes pose-depuis-bas {
+  from {
+    transform: translateY(150px) rotate(7deg) scale(0.88);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+app-carte.entrante.depuis-haut {
+  animation: pose-depuis-haut 380ms cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+
+app-carte.entrante.depuis-bas {
+  animation: pose-depuis-bas 380ms cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+
+// Le ramassage, lui, est animé en TypeScript : le trajet dépend de la position
+// réelle du paquet gagnant à l'écran, que le CSS seul ne peut pas connaître.
+
+// --- Menu pause et voiles -------------------------------------------------
+
+.menu-pause {
+  position: absolute;
+  top: calc(4px + var(--ion-safe-area-top, 0px));
+  left: 4px;
+  z-index: 10;
+  --color: #fff;
+  font-size: 22px;
+}
+
+// Écran assombri : départ de partie, pause et fin de partie.
+.voile {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.resultat {
+  margin: 0;
+  color: #fff;
+  font-size: 26px;
+  font-weight: 700;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+// Tous les boutons des voiles partagent la même forme ; seule la couleur
+// change selon l'action (vert = on reprend, jaune = on (re)lance une partie).
+.action {
+  --border-radius: 999px;
+  --padding-start: 28px;
+  --padding-end: 28px;
+  --box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+  min-width: 230px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  app-carte.entrante.depuis-haut,
+  app-carte.entrante.depuis-bas,
+  .paquet.jouable {
+    animation: none;
+  }
 }

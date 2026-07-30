@@ -1,0 +1,15 @@
+@if (retournee && carte) {
+  <div class="face avant" [class.rouge]="rouge">
+    <span class="coin haut">{{ carte.libelle }}<em>{{ symbole }}</em></span>
+    <span class="centre">{{ symbole }}</span>
+    <span class="coin bas">{{ carte.libelle }}<em>{{ symbole }}</em></span>
+  </div>
+} @else {
+  <div class="face dos">
+    <div class="motif"></div>
+    <span class="enseigne hg">♠</span>
+    <span class="enseigne hd">♥</span>
+    <span class="enseigne bg">♦</span>
+    <span class="enseigne bd">♣</span>
+  </div>
+}
