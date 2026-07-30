@@ -15,7 +15,8 @@ export type Phase =
   | 'accueil'      // aucune partie en cours
   | 'pret'         // on attend que les deux joueurs posent leur carte
   | 'comparaison'  // les cartes sont sur le tapis, il faut les comparer
-  | 'bataille'     // égalité : il faut poser 1 carte cachée + 1 carte visible
+  | 'bataille'     // égalité : chacun doit poser sa carte face cachée
+  | 'renfort'      // reste à poser la carte visible qui départagera
   | 'fin';         // partie terminée
 
 export type Resultat = Joueur | 'egalite';
@@ -119,7 +120,10 @@ export class MoteurBataille {
         this.comparer();
         break;
       case 'bataille':
-        this.poserBataille();
+        this.poserCartesCachees();
+        break;
+      case 'renfort':
+        this.poserCartesDecisives();
         break;
       default:
         break; // 'accueil' et 'fin' : il faut appeler nouvellePartie()
@@ -171,19 +175,28 @@ export class MoteurBataille {
     this.ramasser(visibleJoueur.valeur > visibleOrdi.valeur ? 'joueur' : 'ordinateur');
   }
 
-  /** Étape 3 (si bataille) : chacun pose une carte cachée puis une visible. */
-  private poserBataille(): void {
+  /**
+   * Étape 3a d'une bataille : chacun pose une carte face cachée.
+   * Avec une seule carte en main, il n'y a rien à sacrifier : on la garde pour
+   * la carte décisive, qui est celle qui compte.
+   */
+  private poserCartesCachees(): void {
     this.etat.niveauBataille++;
     for (const j of this.ordreDePose()) {
-      // Il faut 2 cartes : une cachée + une visible.
-      // S'il n'en reste qu'une, elle est posée face visible (c'est elle qui compte).
       if (this.etat.paquets[j].length >= 2) {
         this.poser(j, true);
-        this.poser(j, false);
-      } else if (this.etat.paquets[j].length === 1) {
+      }
+    }
+    this.etat.phase = 'renfort';
+  }
+
+  /** Étape 3b : la carte face visible qui départagera la bataille. */
+  private poserCartesDecisives(): void {
+    for (const j of this.ordreDePose()) {
+      // 0 carte : ce joueur ne peut plus se défendre, comparer() tranchera.
+      if (this.etat.paquets[j].length >= 1) {
         this.poser(j, false);
       }
-      // 0 carte : ce joueur ne peut plus se défendre, comparer() tranchera.
     }
     this.etat.phase = 'comparaison';
   }

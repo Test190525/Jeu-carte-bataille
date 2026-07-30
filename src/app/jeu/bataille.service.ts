@@ -36,14 +36,17 @@ export class BatailleService {
     return this.etat.phase !== 'accueil' && this.etat.phase !== 'fin';
   }
 
-  /** Le joueur doit-il poser ? C'est le seul moment où son paquet est cliquable. */
+  /**
+   * Le joueur doit-il poser ? C'est le seul moment où son paquet est cliquable.
+   * Les cartes cachées d'une bataille, elles, partent toutes seules.
+   */
   get peutPoser(): boolean {
-    return this.etat.phase === 'pret' || this.etat.phase === 'bataille';
+    return this.etat.phase === 'pret' || this.etat.phase === 'renfort';
   }
 
-  /** Une bataille est en cours : le tapis attend deux cartes de plus. */
+  /** Une bataille est en cours : le tapis attend encore des cartes. */
   get enBataille(): boolean {
-    return this.etat.phase === 'bataille';
+    return this.etat.phase === 'bataille' || this.etat.phase === 'renfort';
   }
 
   /** Résultat affiché une fois la partie terminée. */

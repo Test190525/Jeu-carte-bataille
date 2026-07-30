@@ -31,8 +31,20 @@ export class Tab1Page implements OnDestroy {
   private static readonly DUREE_VOL = 650;
   private static readonly DECALAGE_VOL = 70;
 
+  /** Battement avant que les cartes cachées d'une bataille ne partent seules. */
+  private static readonly DELAI_BATAILLE = 250;
+
+  /** Temps d'affichage du tapis entièrement retourné, en fin de bataille. */
+  private static readonly DELAI_REVELATION = 1600;
+
   /** Le menu pause est-il ouvert ? */
   enPause = false;
+
+  /**
+   * Fin de bataille : le moteur a déjà vidé le tapis, mais on rejoue une copie
+   * de toutes les cartes — cachées comprises — face visible avant le ramassage.
+   */
+  private revelation: Record<Joueur, CartePosee[]> | null = null;
 
   /** Calque des cartes en train de voler vers un paquet, hors du template. */
   private coucheDeVol: HTMLElement | null = null;
@@ -55,14 +67,9 @@ export class Tab1Page implements OnDestroy {
 
   /** Clic sur son propre paquet : on retourne la ou les cartes du tour. */
   poser(): void {
-    if (!this.jeu.peutPoser) {
-      return;
+    if (this.jeu.peutPoser) {
+      this.avancerEtAnimer();
     }
-    // On photographie le tapis AVANT d'avancer : ce qui apparaît après est
-    // exactement ce qu'il faut animer.
-    const avant = this.idsSurTapis();
-    this.jeu.avancer();
-    this.animerNouvelles(avant);
   }
 
   nouvellePartie(): void {
@@ -83,8 +90,14 @@ export class Tab1Page implements OnDestroy {
     return this.entrantes.has(posee.carte.id);
   }
 
+  /** Les cartes à dessiner : le tapis, ou sa copie retournée en fin de bataille. */
+  poseesAffichees(j: Joueur): CartePosee[] {
+    return this.revelation ? this.revelation[j] : this.jeu.posees(j);
+  }
+
   estRetournee(posee: CartePosee): boolean {
-    return !posee.cachee;
+    // La révélation finale montre tout, y compris les cartes de bataille.
+    return this.revelation !== null || !posee.cachee;
   }
 
   decalage(posee: CartePosee): number {
@@ -127,6 +140,14 @@ export class Tab1Page implements OnDestroy {
     this.comparerQuandToutEstPose(finDesPoses + Tab1Page.PAUSE_LECTURE);
   }
 
+  private avancerEtAnimer(): void {
+    // On photographie le tapis AVANT d'avancer : ce qui apparaît après est
+    // exactement ce qu'il faut animer.
+    const avant = this.idsSurTapis();
+    this.jeu.avancer();
+    this.animerNouvelles(avant);
+  }
+
   private comparerQuandToutEstPose(delai: number): void {
     if (this.jeu.etat.phase !== 'comparaison') {
       return;
@@ -136,16 +157,39 @@ export class Tab1Page implements OnDestroy {
         joueur: this.jeu.nbCartes('joueur'),
         ordinateur: this.jeu.nbCartes('ordinateur'),
       };
+      const surLeTapis: Record<Joueur, CartePosee[]> = {
+        joueur: [...this.jeu.posees('joueur')],
+        ordinateur: [...this.jeu.posees('ordinateur')],
+      };
 
       this.jeu.avancer();
 
       const gagnant = this.gagnantDuTour(paquetsAvant);
       if (gagnant) {
-        this.animerRamassage(gagnant);
+        this.conclureLeTour(gagnant, surLeTapis);
+      } else if (this.jeu.etat.phase === 'bataille') {
+        // Égalité : les cartes face cachée partent d'elles-mêmes, le joueur
+        // n'aura à cliquer que pour la carte décisive.
+        this.differer(() => this.avancerEtAnimer(), Tab1Page.DELAI_BATAILLE);
       } else if (!this.toutesPosees().length) {
         this.oublierAnimations();
       }
     }, delai);
+  }
+
+  /**
+   * Tour gagné. S'il y avait des cartes de bataille face cachée, on rejoue le
+   * tapis entièrement retourné pour montrer ce qui s'était joué à l'aveugle,
+   * puis seulement tout part vers le paquet du gagnant.
+   */
+  private conclureLeTour(gagnant: Joueur, surLeTapis: Record<Joueur, CartePosee[]>): void {
+    const cachees = [...surLeTapis.joueur, ...surLeTapis.ordinateur].some((p) => p.cachee);
+    if (!cachees) {
+      this.animerRamassage(gagnant);
+      return;
+    }
+    this.revelation = surLeTapis;
+    this.differer(() => this.animerRamassage(gagnant), Tab1Page.DELAI_REVELATION);
   }
 
   /**
@@ -240,6 +284,9 @@ export class Tab1Page implements OnDestroy {
     this.minuteries = [];
     this.entrantes.clear();
     this.decalages.clear();
+    // Les clones sont pris juste après cet appel : le DOM n'a pas encore été
+    // rafraîchi, les cartes révélées y sont donc toujours.
+    this.revelation = null;
     this.retirerCoucheDeVol();
   }
 }

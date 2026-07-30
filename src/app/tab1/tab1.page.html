@@ -27,7 +27,7 @@
     <!-- Cartes posées : les deux éventails se font face -->
     <div class="zone-de-jeu">
       <div class="eventail adversaire">
-        @for (p of jeu.posees('ordinateur'); track p.carte.id) {
+        @for (p of poseesAffichees('ordinateur'); track p.carte.id) {
           <app-carte
             class="depuis-haut"
             [class.entrante]="estEntrante(p)"
@@ -38,7 +38,7 @@
       </div>
 
       <div class="eventail joueur">
-        @for (p of jeu.posees('joueur'); track p.carte.id) {
+        @for (p of poseesAffichees('joueur'); track p.carte.id) {
           <app-carte
             class="depuis-bas"
             [class.entrante]="estEntrante(p)"
@@ -70,7 +70,7 @@
   @if (jeu.etat.phase === 'accueil') {
     <div class="voile">
       <ion-button class="action" size="large" color="warning" (click)="nouvellePartie()">
-        Prêt à jouer ?
+        Jouer
       </ion-button>
     </div>
   }

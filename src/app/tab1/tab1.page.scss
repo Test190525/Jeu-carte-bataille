@@ -88,27 +88,16 @@
   padding: 0;
   border: 0;
   background: none;
+  // Le paquet du joueur est un <button> : sans cela il imposerait la police
+  // native du navigateur et son compteur ne ferait pas la même taille que
+  // celui de l'adversaire.
+  font: inherit;
+  color: inherit;
 }
 
 // Le paquet du joueur remplace le bouton « retourner les cartes ».
 .paquet.jouable {
   cursor: pointer;
-  animation: appel 1.6s ease-in-out infinite;
-}
-
-.paquet.jouable:active {
-  transform: scale(0.96);
-}
-
-// Une respiration discrète pour signaler que c'est au joueur de cliquer.
-@keyframes appel {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 0 rgba(255, 235, 160, 0));
-  }
-  50% {
-    filter: drop-shadow(0 0 10px rgba(255, 235, 160, 0.75));
-  }
 }
 
 .paquet app-carte {
@@ -117,6 +106,7 @@
 }
 
 // La pastille du nombre de cartes restantes, à cheval sur le paquet.
+// Taille figée : ni le nombre de chiffres ni le camp ne doivent la faire varier.
 .compteur {
   position: absolute;
   top: -12px;
@@ -130,7 +120,10 @@
   border: 2px solid #d9b45a;
   background: linear-gradient(#fdfdfd, #d8d8d8);
   color: #222;
+  font-family: inherit;
+  font-size: 15px;
   font-weight: 700;
+  line-height: 1;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
 }
 
@@ -205,7 +198,8 @@ app-carte.entrante.depuis-bas {
   font-size: 22px;
 }
 
-// Écran assombri : départ de partie, pause et fin de partie.
+// Écran plein : départ de partie, pause et fin de partie.
+// Volontairement opaque — on ne doit rien deviner du tapis derrière.
 .voile {
   position: absolute;
   inset: 0;
@@ -216,8 +210,9 @@ app-carte.entrante.depuis-bas {
   justify-content: center;
   gap: 12px;
   padding: 24px;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(2px);
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)),
+    radial-gradient(ellipse 70% 55% at 50% 45%, #2aa14a 0%, #1c8a3c 45%, #0e5c25 100%);
 }
 
 .resultat {
@@ -243,8 +238,7 @@ app-carte.entrante.depuis-bas {
 
 @media (prefers-reduced-motion: reduce) {
   app-carte.entrante.depuis-haut,
-  app-carte.entrante.depuis-bas,
-  .paquet.jouable {
+  app-carte.entrante.depuis-bas {
     animation: none;
   }
 }
