@@ -1,5 +1,5 @@
 {
-  "name": "bataille",
+  "name": "jeu-carte-bataille",
   "integrations": {
     "capacitor": {}
   },
