@@ -1,0 +1,7 @@
+{
+  "name": "bataille",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
